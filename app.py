@@ -4,7 +4,7 @@ import numpy as np
 import json
 import keras
 import cv2
-from sklearn.preprocessing import LabelEncoder
+# from sklearn.preprocessing import LabelEncoder
 import joblib
 from keras.utils import to_categorical
 import urllib.request
@@ -35,58 +35,47 @@ def search():
     # image_b = cv2.imdecode(image_array_b, cv2.IMREAD_COLOR)
     # print("front", front_image.text, flush=True)
     
-    #model load, input, output
+    # model load
     shape_model = keras.models.load_model('my_model3.h5')
     item_model = keras.models.load_model('my_model4.h5')
-    shape_label_encoder = joblib.load('labelencoder.pkl')
-    item_label_encoder = joblib.load('item_label_encoder.pkl')
+    shape_le = joblib.load('labelencoder.pkl')
+    item_le = joblib.load('item_label_encoder.pkl')
     
-    # back_img = cv2.imread(requests.get(lists[0]).content)
-    # front_img = cv2.imread(requests.get(lists[1]).content)
-    urllib.request.urlretrieve(lists[0], '/Users/jooheekim/Desktop/school/capstone/ML_server/back.jpg')
-    urllib.request.urlretrieve(lists[1], '/Users/jooheekim/Desktop/school/capstone/ML_server/front.jpg')
+    urllib.request.urlretrieve(lists[0], '/Users/jooheekim/Desktop/school/capstone/ML_server/front.jpg')
+    urllib.request.urlretrieve(lists[1], '/Users/jooheekim/Desktop/school/capstone/ML_server/back.jpg')
     
     back_img = cv2.imread('back.jpg')
     front_img = cv2.imread('front.jpg')
-    
-    
+
     back_img = cv2.resize(back_img, (128, 128))
     front_img = cv2.resize(front_img, (128, 128))
 
-    back_img = np.expand_dims(back_img, axis=0)
-    front_img = np.expand_dims(front_img, axis=0)
+    back_img = np.expand_dims(back_img, axis=0) / 255.  # 이미지를 정규화합니다.
+    front_img = np.expand_dims(front_img, axis=0) / 255.  # 이미지를 정규화합니다.
     
     # 첫 번째 모델을 사용하여 뒷면 이미지의 알약 형태를 예측합니다.
-    back_shape_predictions = shape_model.predict(back_img)
-
-    # 가장 확률이 높은 클래스의 인덱스를 선택합니다.
-    back_shape_predictions_argmax = np.argmax(back_shape_predictions, axis=-1)
-    print("argmax", back_shape_predictions_argmax)
-
-    # # 첫 번째 모델의 출력 레이어의 뉴런 수를 가져옵니다.
-    # shape_class_count = shape_model.output_shape[1]
+    shape_pred = shape_model.predict(back_img)
+    shape_pred_argmax = np.argmax(shape_pred, axis=-1)
 
     # 예측된 알약 형태를 One-hot encoding으로 변환합니다.
-    back_shape_predictions = to_categorical(back_shape_predictions_argmax, num_classes=58)
-    print(back_shape_predictions)
-
-    # # 예측된 알약 형태의 실제 이름을 가져옵니다.
-    # predicted_shape = list(data.keys())[list(data.values()).index(back_shape_predictions_argmax)]
+    shape_pred_onehot = to_categorical(shape_pred_argmax, num_classes=len(item_le.classes_))
     
-    # 두 번째 모델을 사용하여 앞면 이미지와 알약 형태 예측 결과를 바탕으로 품목을 예측합니다.
-    item_predictions = item_model.predict([front_img, back_shape_predictions])
-
-    # 각 클래스에 대한 확률을 출력합니다.
-    # print(item_predictions)
+   # 두 번째 모델을 사용하여 앞면 이미지와 알약 형태 예측 결과를 바탕으로 품목을 예측합니다.
+    item_pred = item_model.predict([front_img, shape_pred_onehot])
 
     # 가장 확률이 높은 클래스의 인덱스를 선택합니다.
-    item_predictions = np.argmax(item_predictions, axis=-1)
+    item_pred_argmax = np.argmax(item_pred, axis=-1)
 
-    # 예측된 품목의 실제 이름을 가져옵니다.
-    predicted_item = item_label_encoder.inverse_transform(item_predictions)
+    # 예측된 알약 형태를 One-hot encoding으로 변환합니다.
+    shape_pred_onehot = to_categorical(shape_pred_argmax, num_classes=len(shape_le))
 
-    # print("Predicted shape:", predicted_shape)
+    # 예측된 형태와 품목의 실제 이름을 가져옵니다.
+    predicted_shape = list(shape_le.keys())[shape_pred_argmax[0]]
+    predicted_item = item_le.classes_[item_pred_argmax[0]]
+
+    print("Predicted shape:", predicted_shape)
     print("Predicted item:", predicted_item)
+
     predicted_item = predicted_item.tolist()
     
     # data = ['스피자임에스정']
