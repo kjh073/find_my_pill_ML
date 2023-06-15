@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+from PIL import Image
+from matplotlib import pyplot as plt
 import requests
 import numpy as np
 import keras
@@ -6,8 +8,6 @@ import cv2
 import joblib
 import urllib.request
 import ssl
-from PIL import Image
-from matplotlib import pyplot as plt
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -219,11 +219,11 @@ def search():
     predicted_item5 = top_5_labels[4].tolist()
 
     return jsonify({
-        'result1': predicted_item1,
-        'result2': predicted_item2,
+        'result1': predicted_item5,
+        'result2': predicted_item4,
         'result3': predicted_item3,
-        'result4': predicted_item4,
-        'result5': predicted_item5
+        'result4': predicted_item2,
+        'result5': predicted_item1
     })
     
 
